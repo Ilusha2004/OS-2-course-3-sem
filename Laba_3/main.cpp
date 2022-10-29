@@ -1,62 +1,50 @@
 #include <windows.h>
 #include <iostream>
+#include <algorithm>
+#include <vector>
  
 using namespace std;
  
 CRITICAL_SECTION cs;
 HANDLE hOutEvent, hMultEvent;
-volative int x = 0;
-volative int lenght = 0;
-
+int X = 0;
+int lenght = 0;
 int* res;
 
 struct Information {
     int size;
-    char* arr;
+    int* arr;
     int X;
 };
  
 DWORD WINAPI work(void* obj) {
     Information* info = (Information*)obj;
-    char* f_arr = info->arr;
- 
-    cout << "--- Thread work is started" << endl;
+    int* f_arr = info->arr;
+
+    cout << "Thread work is started" << endl;
     int time;
 
     cout << "Enter time to sleep: ";
     cin >> time;
  
+    int* new_arr = new int[info->size];
     int t = 0;
-    int ind = 0;
-    res = new int[info->size];
     
-    for (int i = 0; i < info->size; ++i) {
-        if (isdigit(f_arr[i])) {
-            int t = int(f_arr[i]) - 48;
-            if (t % 2 == 0) {
-                res[ind] = f_arr[i];
-                ind++;
-            }
-        }
+    for(int i = 0; i < info->size; i++){
+        if(f_arr[i] % 3 == 0){ new_arr[t] = f_arr[i]; t++; }
         Sleep(time);
     }
- 
-    for (int i = 0; i < info->size; ++i) {
-        if (isdigit(f_arr[i])) {
-            int t = int(f_arr[i]) - 48;
-            if (t % 2 == 1) {
-                res[ind] = f_arr[i];
-                ind++;
-            }
-        }
+
+    for(int i = 0; i < info->size; i++){
+        if(f_arr[i] % 3 != 0){ new_arr[t] = f_arr[i]; t++; }
         Sleep(time);
     }
- 
-    cout << "  Result array: ";
-    for (int i = 0; i < info->size; ++i) { cout << res[i] << " "; }
- 
-    cout << endl;
-    cout << "--- Thread work is finished" << endl << endl;
+
+    res = new_arr;
+
+    cout  << "------------------------------------------------------------------------------------------------------" << endl 
+    << "Thread work is finished" << endl
+    << "------------------------------------------------------------------------------------------------------" << endl;
     SetEvent(hOutEvent);
     return 0;
 }
@@ -64,7 +52,9 @@ DWORD WINAPI work(void* obj) {
 DWORD WINAPI CountElement(void *obj) {
     EnterCriticalSection(&cs);
     WaitForSingleObject(hMultEvent, INFINITE);
-    cout << "--- Thread MultElement is started" << endl;
+    cout << "------------------------------------------------------------------------------------------------------" << endl;
+    cout << "Thread CountElement is started" << endl 
+    << "------------------------------------------------------------------------------------------------------";
  
     Information* inf = (Information*)obj;
    
@@ -77,22 +67,18 @@ DWORD WINAPI CountElement(void *obj) {
 int main() {
 
     int size;
-
-    cout << "Enter size of array: " << endl << "  ";
-
+    cout << "Enter size of array: ";
     cin >> size;
+    cout << "Enter elements of array: ";
 
-    cout << endl << "Enter elements of array: " << endl << "  ";
-    
-    char* arr = new char[size];
-
+    int* arr = new int[size];
     for (int i = 0; i < size; ++i) { cin >> arr[i]; }
  
-    cout << endl << "-----------------------------------" << endl << endl << 
-    "Input data: " << endl << "  Size: " << size << endl << "  Elements of array: ";
+    cout << "------------------------------------------------------------------------------------------------------" << endl << 
+    "Input data: " << endl << "Size: " << size << endl << "Elements of array: ";
 
     for (int i = 0; i < size; ++i) { cout << arr[i] << " "; }
-    cout << endl;
+    cout << endl << "------------------------------------------------------------------------------------------------------" << endl;
  
     Information* info = new Information();
     info->arr = arr;
@@ -113,30 +99,28 @@ int main() {
     DWORD dwCountMult;
     hThreadMult = CreateThread(NULL, 0, CountElement, (void*)info, NULL, &IDThreadMult);
  
-    cout << endl << "Enter X: ";
+    cout << "Enter X: ";
     cin >> X;
     info->X = X;
-    cout << endl;
+    cout << "------------------------------------------------------------------------------------------------------" << endl;
  
     dwCountWork = ResumeThread(hThreadWork);
     WaitForSingleObject(hOutEvent, INFINITE);
  
     cout << "Elements of array: ";
-
     for (int i = 0; i < info->size; ++i) { cout << res[i] << " "; }
-
     cout << endl;
  
     SetEvent(hMultEvent);
     EnterCriticalSection(&cs);
  
-    cout << endl << "Result of MultElement: " << lenght << endl;
+    cout << endl << "Result of CountElement: " << lenght << endl;
  
     DeleteCriticalSection(&cs);
     WaitForSingleObject(hThreadWork, INFINITE);
     WaitForSingleObject(hThreadMult, INFINITE);
     CloseHandle(hThreadWork);
     CloseHandle(hThreadMult);
- 
+
     return 0;
 }
